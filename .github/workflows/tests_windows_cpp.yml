@@ -150,14 +150,11 @@ jobs:
 
       # GitHub issues no OIDC token to pull requests from forks, so coverage is measured on
       # pushes and on pull requests from branches of this repository.
-      - name: Install covdbg
+      - name: Set up covdbg
         if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
-        run: |
-          $zip = "$env:RUNNER_TEMP\covdbg-1.5.1-x64.zip"
-          Invoke-WebRequest -Uri https://downloads.covdbg.com/covdbg-1.5.1-x64.zip -OutFile $zip
-          if ((Get-FileHash -Algorithm SHA256 $zip).Hash -ne '82cb3352ae3e329faef2648e7574b99685312b90f6d255a8fd8bb58e6d96c4f5') { throw "covdbg-1.5.1-x64.zip: SHA-256 mismatch" }
-          Expand-Archive -Path $zip -DestinationPath "$env:RUNNER_TEMP\covdbg"
-          echo "$env:RUNNER_TEMP\covdbg" >> $env:GITHUB_PATH
+        uses: liasoft/setup-covdbg@6116a52a8ce697108056ce4b4cd2429424a231b1 # v1.0.0
+        with:
+          version: '1.5.1'
 
       - name: Add path to scipy-openblas32 to environment variable
         run: |
