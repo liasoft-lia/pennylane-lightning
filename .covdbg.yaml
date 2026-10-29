@@ -1,0 +1,9 @@
+# Windows C++ coverage for tests_windows_cpp.yml: the sources OpenCppCoverage's
+# `--sources pennylane_lightning\core` selected. LCOV_EXCL markers are honoured.
+version: 1
+source_root: "."
+coverage:
+  default:
+    files:
+      include:
+        - "pennylane_lightning/core/**"
