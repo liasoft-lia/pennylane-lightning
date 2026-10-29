@@ -1726,6 +1726,8 @@ TEMPLATE_TEST_CASE("StateVectorKokkosManaged::applyGlobalPhase",
     const bool inverse = GENERATE(false, true);
     const ComplexT phase = Kokkos::exp(ComplexT{0, (inverse) ? param : -param});
 
+    // StateVectorKokkos rejects zero qubits on Windows (see its constructor).
+#ifndef _WIN32
     DYNAMIC_SECTION("GlobalPhase with 0-qubit - "
                     << PrecisionToName<TestType>::value) {
         const std::size_t num_qubits = 0;
@@ -1739,6 +1741,7 @@ TEMPLATE_TEST_CASE("StateVectorKokkosManaged::applyGlobalPhase",
         CHECK((real(result_sv[0])) == Approx(real(tmp)));
         CHECK((imag(result_sv[0])) == Approx(imag(tmp)));
     }
+#endif
 
     DYNAMIC_SECTION("GlobalPhase with 3-qubit - "
                     << PrecisionToName<TestType>::value) {
