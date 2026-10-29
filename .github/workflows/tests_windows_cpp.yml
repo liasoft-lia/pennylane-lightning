@@ -13,6 +13,7 @@ on:
   push:
     branches:
       - main
+      - covdbg-codecov-proof # fork-only proof, not part of the upstream PR
   pull_request:
     types:
       - opened
