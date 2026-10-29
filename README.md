@@ -19,6 +19,10 @@
   <a href="https://codecov.io/gh/PennyLaneAI/pennylane-lightning">
     <img src="https://img.shields.io/codecov/c/github/PennyLaneAI/pennylane-lightning/main.svg?logo=codecov&style=flat-square" />
   </a>
+  <!-- 05a - covdbg Windows C++ coverage -->
+  <a href="https://covdbg.com/">
+    <img src="https://covdbg.com/badge.svg" alt="covdbg - Windows coverage for C++" />
+  </a>
   <!-- 06 - CodeFactor Grade -->
   <a href="https://www.codefactor.io/repository/github/pennylaneai/pennylane-lightning">
     <img src="https://img.shields.io/codefactor/grade/github/PennyLaneAI/pennylane-lightning/main?logo=codefactor&style=flat-square" />
