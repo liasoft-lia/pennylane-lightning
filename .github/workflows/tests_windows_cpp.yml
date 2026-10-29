@@ -230,6 +230,9 @@ jobs:
     timeout-minutes: 30
     name: C++ Tests (${{matrix.pl_backend}}, on-${{ matrix.os }}, kokkos-${{ matrix.kokkos_version }}, model-${{ matrix.exec_model }})
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+      id-token: write # covdbg identifies this repository by the job's OIDC token
 
     steps:
       - uses: actions/setup-python@v4
@@ -261,10 +264,13 @@ jobs:
         run: |
           powershell.exe New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem" -Name "LongPathsEnabled" -Value 1 -PropertyType DWORD -Force
 
-      - name: Setup OpenCppCoverage and add to PATH
-        run: |
-          choco install OpenCppCoverage -y
-          echo "C:\Program Files\OpenCppCoverage" >> $env:GITHUB_PATH
+      # GitHub issues no OIDC token to pull requests from forks, so coverage is measured on
+      # pushes and on pull requests from branches of this repository.
+      - name: Set up covdbg
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+        uses: liasoft/setup-covdbg@6116a52a8ce697108056ce4b4cd2429424a231b1 # v1.0.0
+        with:
+          version: 'latest'
 
       - name: Add path to scipy-openblas32 to environment variable
         run: |
@@ -272,7 +278,7 @@ jobs:
           echo "SCIPY_OPENBLAS32=${scipy_openblas32_path}" | Out-File -Append -FilePath $env:GITHUB_ENV
           Get-Content $env:GITHUB_ENV
 
-      - name: Build and run unit tests for code coverage
+      - name: Build and run unit tests
         run: |
             Subst Z: (pwd)
             Set-Location -Path "Z:\"
@@ -293,10 +299,24 @@ jobs:
               $filename = $filename.Substring($filename.LastIndexOf("\")+1)
               $test_call = $file.ToString() + " --order lex --reporter junit --out .\Build\tests\results\report_" + $filename + ".xml"
               Invoke-Expression $test_call
-              $cov_call = "OpenCppCoverage --sources pennylane_lightning\core --excluded_modules D:\a\install_dir\* --excluded_modules C:\Windows\System32\* --export_type cobertura:coverage.xml " + $file.ToString()
-              Invoke-Expression $cov_call
             }
-            Move-Item -Path .\coverage.xml -Destination .\coverage-${{ github.job }}-${{ matrix.pl_backend }}.xml
+
+      - name: Measure code coverage of every test runner
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+        run: |
+            # The build ran from the Z: drive, so the runners' PDBs name their sources under Z:\.
+            Set-Location -Path "Z:\"
+            mkdir -p .\Build\coverage
+            $databases = @()
+            foreach ($file in Get-ChildItem -Include *.exe -Recurse -Path ./Build/Debug)
+            {
+              $database = ".\Build\coverage\" + $file.BaseName + ".covdb"
+              covdbg --propagate-exit-code --config .covdbg.yaml --output $database $file.FullName --order lex
+              if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+              $databases += "-i", $database
+            }
+            covdbg merge @databases -o .\Build\coverage\merged.covdb
+            covdbg convert --input .\Build\coverage\merged.covdb --format COBERTURA --output .\coverage-${{ github.job }}-${{ matrix.pl_backend }}.xml
 
       - name: Upload test results
         uses: actions/upload-artifact@v4
@@ -309,6 +329,7 @@ jobs:
           include-hidden-files: true
 
       - name: Upload coverage results
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
         uses: actions/upload-artifact@v4
         with:
           name: windows-coverage-report-${{ matrix.pl_backend }}
