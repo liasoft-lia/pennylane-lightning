@@ -91,6 +91,10 @@
 
 <h3>Internal changes ⚙️</h3>
 
+- The Windows C++ coverage job (`tests_windows_cpp.yml`, Lightning-Qubit) now measures every test runner
+  with covdbg instead of the archived OpenCppCoverage and uploads their merged report. Before, each
+  runner overwrote the same `coverage.xml`, so only the last runner's coverage was uploaded.
+
 - `ctr(GlobalPhase)` now dispatches to `PhaseShift` when possible. Related test is updated.
   [(#1427)](https://github.com/PennyLaneAI/pennylane-lightning/pull/1427)
 
