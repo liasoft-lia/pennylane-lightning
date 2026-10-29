@@ -13,6 +13,7 @@ on:
   push:
     branches:
       - main
+      - kokkos-compare # fork-only comparison, not part of the upstream PR
   pull_request:
     types:
       - opened
@@ -227,7 +228,7 @@ jobs:
         exec_model: ${{ fromJson(needs.win-set-matrix-x86.outputs.exec_model) }}
         kokkos_version: ${{ fromJson(needs.win-set-matrix-x86.outputs.kokkos_version) }}
 
-    timeout-minutes: 30
+    timeout-minutes: 90
     name: C++ Tests (${{matrix.pl_backend}}, on-${{ matrix.os }}, kokkos-${{ matrix.kokkos_version }}, model-${{ matrix.exec_model }})
     runs-on: ${{ matrix.os }}
     permissions:
@@ -317,6 +318,33 @@ jobs:
             }
             covdbg merge @databases -o .\Build\coverage\merged.covdb
             covdbg convert --input .\Build\coverage\merged.covdb --format COBERTURA --output .\coverage-${{ github.job }}-${{ matrix.pl_backend }}.xml
+
+      - name: Compare with OpenCppCoverage (fork-only)
+        run: |
+            Set-Location -Path "Z:\"
+            choco install OpenCppCoverage -y --no-progress
+            $occ = "C:\Program Files\OpenCppCoverage\OpenCppCoverage.exe"
+            mkdir -p .\Build\compare
+            $inputs = @()
+            $times = @()
+            foreach ($file in Get-ChildItem -Include *.exe -Recurse -Path ./Build/Debug)
+            {
+              $name = $file.BaseName
+              $s = Measure-Command { & $occ --quiet --sources pennylane_lightning\core --excluded_modules D:\a\install_dir\* --excluded_modules C:\Windows\System32\* --export_type "binary:.\Build\compare\$name.cov" -- $file.FullName --order lex | Out-Host }
+              $times += "$name OpenCppCoverage exit $LASTEXITCODE $([int]$s.TotalSeconds)s"
+              $inputs += "--input_coverage", ".\Build\compare\$name.cov"
+              covdbg convert --input ".\Build\coverage\$name.covdb" --format COBERTURA --output ".\Build\compare\covdbg-$name.xml"
+            }
+            & $occ --quiet @inputs --export_type "cobertura:.\Build\compare\opencppcoverage.xml"
+            Copy-Item .\coverage-${{ github.job }}-${{ matrix.pl_backend }}.xml .\Build\compare\covdbg.xml
+            $times | Out-File .\Build\compare\timing.txt
+            $times
+
+      - name: Upload comparison (fork-only)
+        uses: actions/upload-artifact@v4
+        with:
+          name: kokkos-compare
+          path: Z:\Build\compare\*.xml
 
       - name: Upload test results
         uses: actions/upload-artifact@v4
