@@ -91,9 +91,11 @@
 
 <h3>Internal changes ⚙️</h3>
 
-- The Windows C++ coverage job (`tests_windows_cpp.yml`, Lightning-Qubit) now measures every test runner
-  with covdbg instead of the archived OpenCppCoverage and uploads their merged report. Before, each
-  runner overwrote the same `coverage.xml`, so only the last runner's coverage was uploaded.
+- The Windows C++ coverage jobs (`tests_windows_cpp.yml`, Lightning-Qubit and Lightning-Kokkos) now measure
+  every test runner with covdbg instead of the archived OpenCppCoverage and upload their merged reports.
+  Before, each runner overwrote the same `coverage.xml`, so only the last runner's coverage was uploaded,
+  and a failing runner did not fail the job. The 0-qubit `GlobalPhase` test of Lightning-Kokkos is now
+  skipped on Windows, where Lightning-Kokkos does not support zero qubits.
 
 - `ctr(GlobalPhase)` now dispatches to `PhaseShift` when possible. Related test is updated.
   [(#1427)](https://github.com/PennyLaneAI/pennylane-lightning/pull/1427)
